@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
 // Pages
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import AdminDashboard from '@/pages/AdminDashboard'
 import LoginPage from '@/pages/LoginPage'
@@ -126,39 +127,41 @@ function AppRoutes() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <AppRoutes />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
-                  duration: 3000,
-                  iconTheme: {
-                    primary: '#22c55e',
-                    secondary: '#fff',
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50">
+              <AppRoutes />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
                   },
-                },
-                error: {
-                  duration: 5000,
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
+                  success: {
+                    duration: 3000,
+                    iconTheme: {
+                      primary: '#22c55e',
+                      secondary: '#fff',
+                    },
                   },
-                },
-              }}
-            />
-          </div>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+                  error: {
+                    duration: 5000,
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </Router>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 

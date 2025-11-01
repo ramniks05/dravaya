@@ -1,5 +1,6 @@
 import StatusBadge from '@/components/common/StatusBadge'
 import { supabase } from '@/lib/supabase'
+import type { TransactionWithRelations } from '@/types/query-types'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
@@ -32,7 +33,7 @@ export default function TransactionMonitoring() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as TransactionWithRelations[]
     }
   })
 
@@ -81,21 +82,6 @@ export default function TransactionMonitoring() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'text-green-600'
-      case 'failed':
-        return 'text-red-600'
-      case 'pending':
-      case 'processing':
-        return 'text-yellow-600'
-      case 'reversed':
-        return 'text-gray-600'
-      default:
-        return 'text-gray-600'
-    }
-  }
 
   const exportTransactions = () => {
     if (!transactions) return

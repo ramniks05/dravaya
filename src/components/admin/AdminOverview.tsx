@@ -11,6 +11,7 @@ import {
     Wallet,
     XCircle
 } from 'lucide-react'
+import type { TransactionWithRelations, WalletRequestWithVendor } from '@/types/query-types'
 
 export default function AdminOverview() {
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -33,10 +34,10 @@ export default function AdminOverview() {
       if (walletRequestsResult.error) throw walletRequestsResult.error
       if (walletsResult.error) throw walletsResult.error
 
-      const users = usersResult.data || []
-      const transactions = transactionsResult.data || []
-      const walletRequests = walletRequestsResult.data || []
-      const wallets = walletsResult.data || []
+      const users = (usersResult.data || []) as import('@/types/database.types').Database['public']['Tables']['users']['Row'][]
+      const transactions = (transactionsResult.data || []) as import('@/types/database.types').Database['public']['Tables']['transactions']['Row'][]
+      const walletRequests = (walletRequestsResult.data || []) as import('@/types/database.types').Database['public']['Tables']['wallet_requests']['Row'][]
+      const wallets = (walletsResult.data || []) as import('@/types/database.types').Database['public']['Tables']['wallets']['Row'][]
 
       const totalVendors = users.filter(u => u.role === 'vendor').length
       const pendingVendors = users.filter(u => u.role === 'vendor' && u.status === 'pending').length
@@ -80,7 +81,7 @@ export default function AdminOverview() {
         .limit(10)
 
       if (error) throw error
-      return data || []
+      return (data || []) as TransactionWithRelations[]
     }
   })
 
@@ -97,7 +98,7 @@ export default function AdminOverview() {
         .limit(5)
 
       if (error) throw error
-      return data || []
+      return (data || []) as WalletRequestWithVendor[]
     }
   })
 

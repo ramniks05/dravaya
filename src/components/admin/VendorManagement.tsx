@@ -31,16 +31,16 @@ export default function VendorManagement() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as import('@/types/database.types').Database['public']['Tables']['users']['Row'][]
     }
   })
 
   const updateVendorStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes }: { id: string, status: string, notes?: string }) => {
-      const { error } = await supabase
-        .from('users')
+    mutationFn: async ({ id, status }: { id: string, status: string }) => {
+      const { error } = await (supabase
+        .from('users') as any)
         .update({ 
-          status,
+          status: status as 'pending' | 'approved' | 'rejected',
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -82,12 +82,11 @@ export default function VendorManagement() {
     }
   }
 
-  const handleStatusUpdate = (status: string, notes?: string) => {
+  const handleStatusUpdate = (status: string) => {
     if (selectedVendor) {
       updateVendorStatusMutation.mutate({ 
         id: selectedVendor.id, 
-        status,
-        notes
+        status
       })
     }
   }

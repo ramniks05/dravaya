@@ -1,6 +1,7 @@
 import StatusBadge from '@/components/common/StatusBadge'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
+import type { TransactionWithRelations } from '@/types/query-types'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
@@ -21,17 +22,18 @@ export default function Transactions() {
   const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('transactions')
         .select(`
           *,
           beneficiary:beneficiaries(*)
         `)
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as TransactionWithRelations[]
     },
     enabled: !!user?.id
   })
@@ -63,21 +65,6 @@ export default function Transactions() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'text-green-600'
-      case 'failed':
-        return 'text-red-600'
-      case 'pending':
-      case 'processing':
-        return 'text-yellow-600'
-      case 'reversed':
-        return 'text-gray-600'
-      default:
-        return 'text-gray-600'
-    }
-  }
 
   const exportTransactions = () => {
     if (!transactions) return

@@ -32,14 +32,15 @@ export default function PaymentForm() {
   const { data: beneficiaries, isLoading: beneficiariesLoading } = useQuery({
     queryKey: ['beneficiaries', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('beneficiaries')
         .select('*')
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as import('@/types/database.types').Database['public']['Tables']['beneficiaries']['Row'][]
     },
     enabled: !!user?.id
   })
@@ -62,10 +63,10 @@ export default function PaymentForm() {
   const selectedBeneficiary = beneficiaries?.find(b => b.id === selectedBeneficiaryId)
 
   const createTransactionMutation = useMutation({
-    mutationFn: async (transactionData: any) => {
+    mutationFn: async (transactionData: Record<string, unknown>) => {
       const { data, error } = await supabase
         .from('transactions')
-        .insert(transactionData)
+        .insert(transactionData as any)
         .select()
         .single()
 
@@ -76,8 +77,8 @@ export default function PaymentForm() {
 
   const updateTransactionMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string, updates: any }) => {
-      const { error } = await supabase
-        .from('transactions')
+      const { error } = await (supabase
+        .from('transactions') as any)
         .update(updates)
         .eq('id', id)
 
@@ -114,16 +115,18 @@ export default function PaymentForm() {
       }
 
       const transaction = await createTransactionMutation.mutateAsync(transactionData)
+      const transactionTyped = transaction as { id: string } | null | undefined
+      if (!transactionTyped?.id) throw new Error('Failed to create transaction')
 
       // Prepare payment data
       const paymentData = {
         beneficiary: {
           name: selectedBeneficiary.name,
           phoneNumber: selectedBeneficiary.phone_number,
-          vpaAddress: selectedBeneficiary.vpa_address,
-          accountNumber: selectedBeneficiary.account_number,
-          ifsc: selectedBeneficiary.ifsc,
-          bankName: selectedBeneficiary.bank_name,
+          vpaAddress: selectedBeneficiary.vpa_address ?? undefined,
+          accountNumber: selectedBeneficiary.account_number ?? undefined,
+          ifsc: selectedBeneficiary.ifsc ?? undefined,
+          bankName: selectedBeneficiary.bank_name ?? undefined,
         },
         amount: data.amount,
         mode: selectedBeneficiary.preferred_mode,
@@ -137,7 +140,7 @@ export default function PaymentForm() {
       if (paymentResponse.status === 'success') {
         // Update transaction with API response
         await updateTransactionMutation.mutateAsync({
-          id: transaction.id,
+          id: transactionTyped.id,
           updates: {
             status: paymentResponse.data?.status || 'processing',
             utr: paymentResponse.data?.utr,
@@ -153,7 +156,7 @@ export default function PaymentForm() {
       } else {
         // Update transaction as failed
         await updateTransactionMutation.mutateAsync({
-          id: transaction.id,
+          id: transactionTyped.id,
           updates: {
             status: 'failed',
             error_message: paymentResponse.message || 'Payment failed',

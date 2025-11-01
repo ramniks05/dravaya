@@ -28,20 +28,21 @@ type RequestFormData = z.infer<typeof requestSchema>
 
 export default function WalletPage() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
-  const { user, wallet, refreshWallet } = useAuth()
+  const { user, wallet } = useAuth()
   const queryClient = useQueryClient()
 
   const { data: walletRequests, isLoading: requestsLoading } = useQuery({
     queryKey: ['wallet-requests', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('wallet_requests')
         .select('*')
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as import('@/types/database.types').Database['public']['Tables']['wallet_requests']['Row'][]
     },
     enabled: !!user?.id
   })
@@ -49,28 +50,30 @@ export default function WalletPage() {
   const { data: recentTransactions } = useQuery({
     queryKey: ['recent-transactions', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5)
 
       if (error) throw error
-      return data || []
+      return (data || []) as import('@/types/database.types').Database['public']['Tables']['transactions']['Row'][]
     },
     enabled: !!user?.id
   })
 
   const createRequestMutation = useMutation({
     mutationFn: async (data: RequestFormData) => {
+      if (!user?.id) throw new Error('User ID is required')
       const { error } = await supabase
         .from('wallet_requests')
         .insert({
-          vendor_id: user?.id,
+          vendor_id: user.id,
           amount: data.amount,
           admin_notes: data.reason,
-        })
+        } as any)
 
       if (error) throw error
     },
@@ -115,18 +118,6 @@ export default function WalletPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'text-green-600'
-      case 'rejected':
-        return 'text-red-600'
-      case 'pending':
-        return 'text-yellow-600'
-      default:
-        return 'text-gray-600'
-    }
-  }
 
   return (
     <div className="space-y-6">

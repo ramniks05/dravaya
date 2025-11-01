@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
           await fetchUserProfile(session.user.id)
         } else {
@@ -53,10 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (userError) throw userError
 
-      setUser(userData)
+      const userDataTyped = userData as import('@/types/database.types').Database['public']['Tables']['users']['Row']
+      setUser(userDataTyped as any)
 
       // Fetch wallet if user is approved
-      if (userData.status === 'approved') {
+      if (userDataTyped.status === 'approved') {
         const { data: walletData, error: walletError } = await supabase
           .from('wallets')
           .select('*')
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single()
 
         if (walletError) throw walletError
-        setWallet(walletData)
+        setWallet(walletData as any)
       }
 
       setLoading(false)
@@ -91,8 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           full_name: fullName,
           role,
-          status: role === 'admin' ? 'approved' : 'pending'
-        })
+          status: (role === 'admin' ? 'approved' : 'pending') as 'pending' | 'approved' | 'rejected'
+        } as any)
 
       if (profileError) throw profileError
     }

@@ -159,6 +159,14 @@ drop policy if exists users_select_admin on public.users;
 create policy users_select_admin on public.users
 for select using (public.is_admin(auth.uid()));
 
+drop policy if exists users_insert_own on public.users;
+create policy users_insert_own on public.users
+for insert with check (auth.uid() = id);
+
+drop policy if exists users_update_own on public.users;
+create policy users_update_own on public.users
+for update using (auth.uid() = id);
+
 -- Wallets policies
 drop policy if exists wallets_select_own on public.wallets;
 create policy wallets_select_own on public.wallets

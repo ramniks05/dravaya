@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
+import type { TransactionWithRelations } from '@/types/query-types'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
@@ -18,22 +19,23 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['vendor-stats', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const [transactionsResult, beneficiariesResult] = await Promise.all([
         supabase
           .from('transactions')
           .select('*')
-          .eq('vendor_id', user?.id),
+          .eq('vendor_id', user.id),
         supabase
           .from('beneficiaries')
           .select('*')
-          .eq('vendor_id', user?.id)
+          .eq('vendor_id', user.id)
       ])
 
       if (transactionsResult.error) throw transactionsResult.error
       if (beneficiariesResult.error) throw beneficiariesResult.error
 
-      const transactions = transactionsResult.data || []
-      const beneficiaries = beneficiariesResult.data || []
+      const transactions = (transactionsResult.data || []) as import('@/types/database.types').Database['public']['Tables']['transactions']['Row'][]
+      const beneficiaries = (beneficiariesResult.data || []) as import('@/types/database.types').Database['public']['Tables']['beneficiaries']['Row'][]
 
       const totalTransactions = transactions.length
       const successfulTransactions = transactions.filter(t => t.status === 'success').length
@@ -58,18 +60,19 @@ export default function Dashboard() {
   const { data: recentTransactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ['recent-transactions', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('transactions')
         .select(`
           *,
           beneficiary:beneficiaries(*)
         `)
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5)
 
       if (error) throw error
-      return data || []
+      return (data || []) as TransactionWithRelations[]
     },
     enabled: !!user?.id
   })

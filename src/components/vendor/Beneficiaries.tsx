@@ -1,5 +1,4 @@
 import Modal from '@/components/common/Modal'
-import StatusBadge from '@/components/common/StatusBadge'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -50,26 +49,28 @@ export default function Beneficiaries() {
   const { data: beneficiaries, isLoading } = useQuery({
     queryKey: ['beneficiaries', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User ID is required')
       const { data, error } = await supabase
         .from('beneficiaries')
         .select('*')
-        .eq('vendor_id', user?.id)
+        .eq('vendor_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as import('@/types/database.types').Database['public']['Tables']['beneficiaries']['Row'][]
     },
     enabled: !!user?.id
   })
 
   const createMutation = useMutation({
     mutationFn: async (data: BeneficiaryFormData) => {
+      if (!user?.id) throw new Error('User ID is required')
       const { error } = await supabase
         .from('beneficiaries')
         .insert({
           ...data,
-          vendor_id: user?.id
-        })
+          vendor_id: user.id
+        } as any)
 
       if (error) throw error
     },
@@ -86,8 +87,8 @@ export default function Beneficiaries() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string, data: BeneficiaryFormData }) => {
-      const { error } = await supabase
-        .from('beneficiaries')
+      const { error } = await (supabase
+        .from('beneficiaries') as any)
         .update(data)
         .eq('id', id)
 
@@ -245,7 +246,9 @@ export default function Beneficiaries() {
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Payment Mode</span>
-                  <StatusBadge status={beneficiary.preferred_mode.toLowerCase() as any} />
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {beneficiary.preferred_mode}
+                  </span>
                 </div>
                 
                 {beneficiary.preferred_mode === 'UPI' ? (

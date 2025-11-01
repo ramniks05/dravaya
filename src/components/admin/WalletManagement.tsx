@@ -1,6 +1,7 @@
 import Modal from '@/components/common/Modal'
 import StatusBadge from '@/components/common/StatusBadge'
 import { supabase } from '@/lib/supabase'
+import type { UserWithWallet, WalletRequestWithVendor } from '@/types/query-types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
@@ -44,7 +45,7 @@ export default function WalletManagement() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as WalletRequestWithVendor[]
     }
   })
 
@@ -61,19 +62,19 @@ export default function WalletManagement() {
         .eq('status', 'approved')
 
       if (error) throw error
-      return data || []
+      return (data || []) as UserWithWallet[]
     }
   })
 
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string, status: string, notes?: string }) => {
-      const { error } = await supabase
-        .from('wallet_requests')
+      const { error } = await (supabase
+        .from('wallet_requests') as any)
         .update({ 
-          status,
+          status: status as 'pending' | 'approved' | 'rejected',
           admin_notes: notes,
           processed_at: new Date().toISOString(),
-          processed_by: 'admin' // In real app, use actual admin ID
+          processed_by: null // In real app, use actual admin ID
         })
         .eq('id', id)
 
@@ -91,11 +92,22 @@ export default function WalletManagement() {
 
   const manualTopupMutation = useMutation({
     mutationFn: async ({ vendorId, amount, notes }: { vendorId: string, amount: number, notes?: string }) => {
-      // Update wallet balance
-      const { error: walletError } = await supabase
+      // Get current wallet balance
+      const { data: currentWallet, error: fetchError } = await supabase
         .from('wallets')
+        .select('balance')
+        .eq('user_id', vendorId)
+        .single()
+
+      if (fetchError) throw fetchError
+      const walletData = currentWallet as { balance: number } | null
+      if (!walletData) throw new Error('Wallet not found')
+
+      // Update wallet balance
+      const { error: walletError } = await (supabase
+        .from('wallets') as any)
         .update({ 
-          balance: supabase.raw(`balance + ${amount}`)
+          balance: walletData.balance + amount
         })
         .eq('user_id', vendorId)
 
@@ -107,11 +119,11 @@ export default function WalletManagement() {
         .insert({
           vendor_id: vendorId,
           amount,
-          status: 'approved',
+          status: 'approved' as const,
           admin_notes: notes || 'Manual top-up by admin',
           processed_at: new Date().toISOString(),
-          processed_by: 'admin'
-        })
+          processed_by: null
+        } as any)
 
       if (recordError) throw recordError
     },
