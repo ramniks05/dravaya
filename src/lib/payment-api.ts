@@ -82,10 +82,19 @@ export async function initiateFundTransfer(
       }),
     })
 
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('API Error Response:', text)
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    }
+
     const result = await response.json()
     return result
   } catch (error) {
     console.error('Fund transfer error:', error)
+    if (error instanceof SyntaxError) {
+      throw new Error('Failed to connect to API server. Make sure "npm run dev" is running in another terminal.')
+    }
     throw error
   }
 }

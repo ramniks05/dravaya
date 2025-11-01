@@ -79,11 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payload.ben_bank_name = beneficiary.bankName
     }
 
-    // Signature
+    // Signature generation - matches API documentation exactly
     let signatureString: string
     if (mode === 'UPI') {
+      // UPI format: {ben_name}-{ben_phone_number}-{ben_vpa_address}-{amount}-{merchant_reference_id}-{transfer_type}-{apicode}-{narration}{secret_key}
       signatureString = `${payload.ben_name}-${payload.ben_phone_number}-${payload.ben_vpa_address}-${payload.amount}-${payload.merchant_reference_id}-${payload.transfer_type}-${payload.apicode}-${payload.narration}${SECRET_KEY}`
     } else {
+      // IMPS/NEFT format: {ben_name}-{ben_phone_number}-{ben_account_number}-{ben_ifsc}-{ben_bank_name}-{amount}-{merchant_reference_id}-{transfer_type}-{apicode}-{narration}{secret_key}
+      // Note: API docs template shows {ben_account_number}{ben_ifsc} but example shows dashes, matching example format
       signatureString = `${payload.ben_name}-${payload.ben_phone_number}-${payload.ben_account_number}-${payload.ben_ifsc}-${payload.ben_bank_name}-${payload.amount}-${payload.merchant_reference_id}-${payload.transfer_type}-${payload.apicode}-${payload.narration}${SECRET_KEY}`
     }
     payload.signature = sha256Hex(signatureString)

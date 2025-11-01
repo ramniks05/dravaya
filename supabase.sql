@@ -191,6 +191,19 @@ drop policy if exists transactions_select_admin on public.transactions;
 create policy transactions_select_admin on public.transactions
 for select using (public.is_admin(auth.uid()));
 
+drop policy if exists transactions_insert_vendor on public.transactions;
+create policy transactions_insert_vendor on public.transactions
+for insert with check (auth.uid() = vendor_id);
+
+drop policy if exists transactions_update_admin on public.transactions;
+create policy transactions_update_admin on public.transactions
+for update using (public.is_admin(auth.uid()));
+
+-- Allow service role to update transactions (for webhooks)
+drop policy if exists transactions_update_service_role on public.transactions;
+create policy transactions_update_service_role on public.transactions
+for update using (current_setting('role') = 'service_role');
+
 -- Wallet requests policies
 drop policy if exists wallet_requests_all_vendor on public.wallet_requests;
 create policy wallet_requests_all_vendor on public.wallet_requests
