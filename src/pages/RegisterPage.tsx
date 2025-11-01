@@ -12,9 +12,6 @@ const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
-  role: z.enum(['vendor', 'admin'], {
-    required_error: 'Please select a role',
-  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -40,7 +37,8 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true)
-      await signUp(data.email, data.password, data.fullName, data.role)
+      // Always register as vendor - admin accounts must be created manually
+      await signUp(data.email, data.password, data.fullName, 'vendor')
       toast.success('Registration successful! Please wait for admin approval.')
       navigate('/login')
     } catch (error: any) {
@@ -114,26 +112,6 @@ export default function RegisterPage() {
                 <div className="mt-1 flex items-center text-sm text-red-600">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.email.message}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-              <select
-                {...register('role')}
-                className={`input-field ${errors.role ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-              >
-                <option value="">Select your role</option>
-                <option value="vendor">Vendor</option>
-                <option value="admin">Admin</option>
-              </select>
-              {errors.role && (
-                <div className="mt-1 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.role.message}
                 </div>
               )}
             </div>
